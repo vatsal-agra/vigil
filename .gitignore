@@ -1,0 +1,57 @@
+# ---------- secrets ----------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ---------- python ----------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+*.sqlite3
+*.db
+
+# ---------- node / next ----------
+node_modules/
+.next/
+out/
+build/
+dist/
+.turbo/
+*.tsbuildinfo
+npm-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ---------- docker ----------
+docker-compose.override.yml
+
+# ---------- editors ----------
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.swp
+
+# ---------- os ----------
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---------- project ----------
+/data/
+/backups/
+*.local
+
+# ---------- document build ----------
+!docs/build/
+docs/build/assets/
+docs/build/node_modules/
+Vigil_Digital_Assignment_1.pdf

@@ -1,0 +1,85 @@
+name: vigil
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-vigil}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-vigil}
+      POSTGRES_DB: ${POSTGRES_DB:-vigil}
+    volumes:
+      - vigil_pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-vigil}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  cache:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: ./backend
+      target: ${BACKEND_TARGET:-dev}
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-vigil}:${POSTGRES_PASSWORD:-vigil}@db:5432/${POSTGRES_DB:-vigil}
+      REDIS_URL: redis://cache:6379/0
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
+      CORS_ORIGINS: http://localhost:3000
+      SEED_DEMO_DATA: "true"
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: ./backend
+      target: worker
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-vigil}:${POSTGRES_PASSWORD:-vigil}@db:5432/${POSTGRES_DB:-vigil}
+      REDIS_URL: redis://cache:6379/0
+      PROBE_INTERVAL_SECONDS: "30"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      api:
+        condition: service_started
+      db:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ./frontend
+      target: ${FRONTEND_TARGET:-dev}
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+
+volumes:
+  vigil_pgdata:

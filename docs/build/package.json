@@ -1,0 +1,12 @@
+{
+  "name": "vigil-doc-builder",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Builds the Digital Assignment 1 submission document",
+  "scripts": {
+    "build": "node build_doc.js"
+  },
+  "dependencies": {
+    "docx": "^9.0.0"
+  }
+}

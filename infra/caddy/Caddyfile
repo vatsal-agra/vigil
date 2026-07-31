@@ -1,0 +1,33 @@
+# Production reverse proxy, fronted by a Cloudflare Tunnel.
+# Caddy terminates locally; Cloudflare handles the public certificate.
+
+vigil.example.com {
+	encode zstd gzip
+
+	# API and health live under /api and /health
+	handle /api/* {
+		reverse_proxy api:8000
+	}
+
+	handle /health {
+		reverse_proxy api:8000
+	}
+
+	# Everything else is the Next.js app
+	handle {
+		reverse_proxy web:3000
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	log {
+		output file /var/log/caddy/vigil.log
+		format json
+	}
+}
