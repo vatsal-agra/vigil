@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Vigil — Software Design Document</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/typescript.min.js"></script>
+<style>
+  :root { --a:#2B5CD9; --ink:#12161C; --body:#2E3440; --muted:#5A626D; --rule:#D5DAE1; --panel:#F4F6F8; }
+  @page { size: A4; margin: 16mm 16mm 18mm 16mm; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Calibri, Arial, sans-serif; color: var(--body); font-size: 10pt; line-height: 1.45; margin: 0; }
+  h1 { font-size: 15pt; color: var(--ink); margin: 16pt 0 6pt; padding-bottom: 4pt; border-bottom: 2px solid var(--a); break-after: avoid; }
+  h1 .n { color: var(--a); margin-right: 6pt; }
+  h2 { font-size: 11.5pt; color: var(--ink); margin: 11pt 0 4pt; break-after: avoid; }
+  h3 { font-size: 10pt; color: var(--a); margin: 8pt 0 3pt; break-after: avoid; }
+  p { margin: 0 0 6pt; }
+  ul { margin: 0 0 6pt; padding-left: 16pt; }
+  li { margin-bottom: 2.5pt; }
+  code { font-family: Consolas, "SF Mono", monospace; font-size: 8.8pt; background: var(--panel); padding: 0 2pt; border-radius: 2pt; color: #24303F; }
+  pre { margin: 4pt 0 8pt; break-inside: avoid; }
+  pre code.hljs { display: block; font-size: 8.2pt; line-height: 1.35; padding: 6pt 8pt; background: #F6F8FA; border: 1px solid #E1E5EA; border-left: 3px solid var(--a); border-radius: 3pt; white-space: pre; overflow: hidden; }
+  .src { font-size: 7.8pt; color: var(--muted); margin: -4pt 0 8pt; font-family: Consolas, monospace; }
+  figure { margin: 6pt 0 10pt; text-align: center; break-inside: avoid; }
+  figure img { max-width: 100%; border: 1px solid var(--rule); border-radius: 3pt; }
+  figcaption { font-size: 8.5pt; color: var(--muted); font-style: italic; margin-top: 3pt; }
+  table { border-collapse: collapse; width: 100%; margin: 4pt 0 9pt; font-size: 8.8pt; break-inside: avoid; }
+  th { background: #E8EDF7; color: var(--ink); text-align: left; font-weight: 600; }
+  th, td { border: 1px solid var(--rule); padding: 3.5pt 5pt; vertical-align: top; }
+  .note { background: #EEF3FE; border-left: 3px solid var(--a); padding: 5pt 8pt; margin: 6pt 0 8pt; font-size: 9.2pt; color: #1E3A6E; break-inside: avoid; }
+  .cover { border-bottom: 1px solid var(--rule); padding-bottom: 8pt; margin-bottom: 4pt; }
+  .kicker { color: var(--a); font-size: 8.5pt; font-weight: 700; letter-spacing: 1.5pt; }
+  .title { font-size: 24pt; font-weight: 800; color: var(--ink); margin: 2pt 0 0; }
+  .subtitle { font-size: 11pt; color: var(--muted); font-style: italic; margin-bottom: 8pt; }
+  .meta { display: grid; grid-template-columns: auto 1fr auto 1fr; gap: 2pt 10pt; font-size: 9pt; }
+  .meta b { color: var(--muted); font-weight: 400; }
+  a { color: var(--a); text-decoration: none; }
+  .ui-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8pt; margin: 4pt auto 2pt; width: 76%; break-inside: avoid; }
+  .ui-row img { width: 100%; border: 1px solid var(--rule); border-radius: 3pt; }
+  .ui-row .lab { font-size: 7.5pt; color: var(--muted); text-transform: uppercase; letter-spacing: 1pt; margin-bottom: 2pt; }
+  .ui-cap { font-size: 8.8pt; margin: 3pt auto 7pt; width: 76%; break-before: avoid; }
+  .ui-cap b { color: var(--ink); }
+  .dec { break-inside: avoid; margin-bottom: 7pt; }
+  .dec .h { font-weight: 700; color: var(--ink); }
+  .dec .t { font-size: 8.8pt; color: var(--muted); }
+  .pb { break-before: page; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10pt; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="kicker">DIGITAL ASSIGNMENT 2 &nbsp;/&nbsp; REVIEW 2 &nbsp;·&nbsp; SOFTWARE ENGINEERING</div>
+  <div class="title">Vigil — Software Design Document</div>
+  <div class="subtitle">How twenty-five user stories and six wireframes became a modular, maintainable system</div>
+  <div class="meta">
+    <b>Name</b><span>Vatsal Agrawal</span>
+    <b>Registration</b><span>24BAI1355</span>
+    <b>Programme</b><span>B.Tech CSE (AI &amp; ML), VIT Chennai</span>
+    <b>Date</b><span>24 September 2026</span>
+    <b>Repository</b><span><a href="https://github.com/vatsal-agra/vigil">github.com/vatsal-agra/vigil</a></span>
+    <b>Design folder</b><span><a href="https://github.com/vatsal-agra/vigil/tree/main/docs/design">/docs/design</a></span>
+  </div>
+</div>
+
+<p><b>Vigil</b> is a self-hosted uptime and API monitor. A background worker probes each URL on a schedule, records every
+response, opens an incident after repeated failures, closes it on recovery with a one-sentence explanation, and publishes a
+public status page. Review 1 defined the product: vision, 25 user stories, MoSCoW priorities, six wireframes and a system
+diagram. This document explains how that was turned into structure. It covers which principles shaped the code, which
+architectural style was chosen and why, how the UI was made easy to use, and how the design absorbs future change. Every snippet is
+taken from the repository, with its file and line range below it.</p>
+
+<!-- ============================================================ 1 -->
+<h1><span class="n">1</span>Design Principles Applied</h1>
+
+<h2>1.1 Abstraction — callers state <i>what</i>, never <i>how</i></h2>
+<p>Each boundary hides its mechanism behind a small interface. On the frontend, no page ever calls <code>fetch</code>, reads
+the token, sets headers or handles an expired session. All four pages call one generic function:</p>
+<pre><code class="language-typescript">export async function api&lt;T&gt;(path: string, init: RequestInit = {}): Promise&lt;T&gt; {
+  const headers: Record&lt;string, string&gt; = { "Content-Type": "application/json", ...(init.headers ?? {}) };
+  const t = token();
+  if (t) headers.Authorization = `Bearer ${t}`;
+
+  const res = await fetch(`${API}${path}`, { ...init, headers, cache: "no-store" });
+  if (res.status === 401) {                 // one place decides what "signed out" means
+    clearSession();
+    window.location.href = "/login";
+    throw new Error("Session expired.");
+  }
+  if (!res.ok) throw new Error((await res.json().catch(() =&gt; ({}))).detail ?? `Request failed (${res.status}).`);
+  return res.status === 204 ? (undefined as T) : ((await res.json()) as T);
+}</code></pre>
+<div class="src">frontend/lib/api.ts, lines 53–72 (condensed)</div>
+<p>The backend treats Redis the same way. <code>cache.py</code> exposes three verbs and absorbs every Redis failure, so to
+its callers the cache is <i>optional</i>: if Redis is down, reads fall through to PostgreSQL rather than erroring.</p>
+<pre><code class="language-python">def get_json(key: str) -&gt; Any | None:
+    try:
+        raw = client().get(key)
+    except redis.RedisError:
+        return None                      # a cache outage looks exactly like a cache miss
+    return json.loads(raw) if raw else None
+
+def invalidate(pattern: str) -&gt; None:
+    try:
+        conn = client()
+        for key in conn.scan_iter(match=pattern, count=200):
+            conn.delete(key)
+    except redis.RedisError:
+        pass</code></pre>
+<div class="src">backend/app/cache.py, lines 18–39 (set_json omitted)</div>
+<p><b>Why it matters:</b> moving the session token from <code>localStorage</code> to an httpOnly cookie changes one file,
+<code>api.ts</code>. Swapping Redis for another store changes one file, <code>cache.py</code>. No page and no router has to be
+touched.</p>
+
+<h2>1.2 Modularity — one file, one job</h2>
+<p>The code is split into four layers, and every module sits in exactly one of them (Figure 2). Dependencies only point
+downward: routers use services, services use models, and nothing imports upward. The probe worker is a second
+<i>process</i>, not a second codebase. <code>worker.py</code> is a 40-line loop over the same <code>probe.py</code>,
+<code>models.py</code> and <code>config.py</code> that the API uses:</p>
+<pre><code class="language-python">def main() -&gt; None:
+    wait_for_db()
+    log.info("worker online, cycle every %ss", settings.probe_interval_seconds)
+    while True:
+        db = SessionLocal()
+        try:
+            checked = run_cycle(db)                       # all logic lives in app/probe.py
+            if checked:
+                log.info("cycle complete, %s monitor(s) checked", checked)
+        except Exception:
+            log.exception("cycle failed, continuing")     # one bad cycle never kills the worker
+        finally:
+            db.close()
+        time.sleep(settings.probe_interval_seconds)</code></pre>
+<div class="src">backend/worker.py, lines 27–40</div>
+
+<table>
+  <tr><th style="width:22%">Module</th><th style="width:48%">Single responsibility</th><th>User stories</th></tr>
+  <tr><td><code>routers/auth.py</code></td><td>Register and sign in; issue a JWT</td><td>US-01, US-02</td></tr>
+  <tr><td><code>routers/monitors.py</code></td><td>Monitor CRUD, response-time series, ownership check</td><td>US-05 – US-12</td></tr>
+  <tr><td><code>routers/incidents.py</code></td><td>Incident feed, open-only filter, acknowledge</td><td>US-15, US-18</td></tr>
+  <tr><td><code>routers/status.py</code></td><td>Unauthenticated, cached public status feed</td><td>US-16, US-17</td></tr>
+  <tr><td><code>probe.py</code></td><td>Checking engine and incident state machine</td><td>US-13, US-14, US-21</td></tr>
+  <tr><td><code>services.py</code></td><td>Shared read queries: 24-hour rollup, open incident, unique slug</td><td>US-08, US-14</td></tr>
+  <tr><td><code>security.py</code></td><td>Password hashing, JWT issue/verify, <code>current_user</code> dependency</td><td>US-01 – US-04</td></tr>
+  <tr><td><code>cache.py</code> / <code>db.py</code> / <code>config.py</code></td><td>Redis access / sessions / every tunable from environment variables</td><td>US-23, US-24</td></tr>
+</table>
+
+<h2>1.3 High cohesion — each function does one step of one job</h2>
+<p><code>probe.py</code> holds only the checking engine, split into three functions that each do one step:
+<code>due_monitors()</code> decides <i>which</i> monitors to check, <code>probe_once()</code> <i>measures</i> one of them and
+returns a <code>Check</code> without touching the database, and <code>apply_result()</code> performs the <i>state
+transition</i>. Because measuring never writes, <code>probe_once</code> can be unit-tested with a fake HTTP client. All
+of the transition logic is in one place:</p>
+<pre><code class="language-python">def apply_result(db: Session, monitor: Monitor, check: Check) -&gt; None:
+    monitor.last_checked_at = datetime.now(timezone.utc)
+    if check.ok:
+        monitor.consecutive_failures = 0
+        monitor.current_status = "degraded" if check.latency_ms &gt; 2000 else "up"
+        incident = open_incident(db, monitor.id)
+        if incident is not None:                                  # recovery closes the incident
+            incident.resolved_at = datetime.now(timezone.utc)
+            incident.summary = f"{monitor.name} recovered after {minutes:.0f} min. Trigger: {incident.cause}. ..."
+    else:
+        monitor.consecutive_failures += 1
+        if monitor.consecutive_failures &gt;= settings.failure_threshold:   # flap guard: 2, not 1
+            monitor.current_status = "down"
+            if open_incident(db, monitor.id) is None:
+                db.add(Incident(monitor_id=monitor.id, cause=check.error or "check failed"))
+    db.add(check)
+    db.commit()
+    cache.invalidate(f"monitors:list:{monitor.owner_id}")         # the only link back to the API
+    cache.invalidate(f"monitors:checks:{monitor.id}:*")
+    cache.invalidate("status:public:*")</code></pre>
+<div class="src">backend/app/probe.py, lines 68–100 (condensed)</div>
+
+<h2>1.4 Low coupling — parts meet only at narrow, explicit seams</h2>
+<ul>
+  <li><b>API and worker never call each other.</b> They share only the database schema and a naming convention for cache keys
+  (last three lines above). Either one can be restarted, redeployed or scaled without the other noticing.</li>
+  <li><b>Frontend and backend share only a JSON contract.</b> Pydantic schemas (<code>MonitorOut</code>, <code>IncidentOut</code>)
+  on one side are mirrored by TypeScript types in <code>api.ts</code> on the other. A type mismatch fails <code>next build</code> in
+  CI, so contract drift cannot ship.</li>
+  <li><b>Cross-cutting concerns are injected, not constructed.</b> Routers receive a session and a verified user through
+  FastAPI <code>Depends</code>. None of them parses a token or opens a connection, and ownership is enforced in one helper:</li>
+</ul>
+<pre><code class="language-python">def _owned(db: Session, monitor_id: int, user: User) -&gt; Monitor:
+    monitor = db.get(Monitor, monitor_id)
+    if monitor is None or monitor.owner_id != user.id:
+        raise HTTPException(status_code=404, detail="No monitor with that id.")   # 404, not 403: no existence leak
+    return monitor
+
+@router.get("")
+def list_monitors(db: Session = Depends(get_db), user: User = Depends(current_user)): ...</code></pre>
+<div class="src">backend/app/routers/monitors.py, lines 20–28</div>
+<ul>
+  <li><b>Configuration is one object.</b> <code>config.Settings</code> reads the environment once. No module calls
+  <code>os.environ</code>, so the failure threshold, probe timeout and TTLs can all change without a code edit.</li>
+</ul>
+
+<!-- ============================================================ 2 -->
+<h1 style="margin-top:8pt"><span class="n">2</span>High-Level Architecture</h1>
+<figure>
+  <img src="../design/diagrams/01-architecture.png" style="width:82%">
+  <figcaption>Figure 1 — System architecture: client → edge → frontend → API → cache / database, with the probe worker
+  alongside. Editable source: docs/design/diagrams/01-architecture.drawio</figcaption>
+</figure>
+
+<h2>2.1 Style chosen: a layered monolith, deployed as cooperating containers</h2>
+<p>Vigil is a <b>client–server system with a layered backend</b> (presentation → API → domain services → data access),
+packaged as five containers: web, api, worker, PostgreSQL and Redis. It is deliberately <i>not</i> microservices. The API is a
+single process with four routers over one database. The only thing split out is the worker, and that split has a concrete
+reason.</p>
+<ul>
+  <li><b>Why layered:</b> one developer, one semester. A strict downward dependency rule can be checked by reading the imports,
+  and it keeps each change inside one layer.</li>
+  <li><b>Why a separate worker:</b> probing is slow, blocking I/O. A monitor that times out holds a thread for eight seconds. If
+  that happened inside the API, the dashboard would slow down during an outage, exactly when people are reloading it.</li>
+  <li><b>Why not microservices:</b> they would add network hops, distributed failure modes and more deployment work, with
+  nothing to show for it at this size. Because the module seams already exist, a service could be split out later along
+  a line that is already there.</li>
+  <li><b>Why cache-aside with write-invalidation:</b> the public status page spikes exactly when a service is failing.
+  With a 20-second TTL, a thousand visitors cost about three database queries a minute. The worker deletes the affected keys
+  on every write, so data is never staler than one probe cycle.</li>
+</ul>
+<p>The system diagram is unchanged since Review 1 because the implementation matched it. The <b>update for this review</b> is
+three new design views that go one level deeper: modules (Figure 2), data (Figure 3) and behaviour (Figure 4).</p>
+
+<figure>
+  <img src="../design/diagrams/02-module-layers.png" style="width:84%">
+  <figcaption>Figure 2 — Module and layer view. Each box is one file; arrows are imports and point downward only.</figcaption>
+</figure>
+
+<figure>
+  <img src="../design/diagrams/03-data-model.png" style="width:80%">
+  <figcaption>Figure 3 — Data model. Checks and incidents cascade-delete with their monitor; an incident is open exactly
+  when <code>resolved_at</code> is null, so there is no second status column to fall out of sync.</figcaption>
+</figure>
+<figure>
+  <img src="../design/diagrams/04-monitor-state-machine.png" style="width:80%">
+  <figcaption>Figure 4 — Monitor state machine implemented by <code>apply_result()</code>. A single failure changes
+  nothing (flap guard); the second opens an incident; the first success closes it.</figcaption>
+</figure>
+
+<!-- ============================================================ 3 -->
+<h1><span class="n">3</span>User Interface Design</h1>
+<p>Each of the six screens from Review 1 is shown as its wireframe (left) next to the implemented screen captured from the
+running application (right). The wireframes are SVG files in <code>docs/design/ui/wireframes/</code>. Dragging them into a
+Figma file opens them as editable vector frames.</p>
+
+<div class="ui-row">
+  <div><div class="lab">Wireframe</div><img src="../design/ui/wireframes/01-sign-in.png"></div>
+  <div><div class="lab">Implemented</div><img src="../design/ui/screens/01-sign-in.png"></div>
+</div>
+<div class="ui-cap"><b>1 · Sign in (US-01, US-02).</b> One card, two fields, one primary action; "Create one" switches the same
+form to registration instead of sending users to another page.</div>
+
+<div class="ui-row">
+  <div><div class="lab">Wireframe</div><img src="../design/ui/wireframes/02-dashboard.png"></div>
+  <div><div class="lab">Implemented</div><img src="../design/ui/screens/02-dashboard.png"></div>
+</div>
+<div class="ui-cap"><b>2 · Dashboard (US-05, US-08, US-09).</b> Four summary tiles answer "is anything broken?" at a glance.
+Each row shows status, 24-hour uptime and latency, and the page refreshes itself every 15 seconds.</div>
+
+<div class="ui-row">
+  <div><div class="lab">Wireframe</div><img src="../design/ui/wireframes/03-add-monitor.png"></div>
+  <div><div class="lab">Implemented</div><img src="../design/ui/screens/03-add-monitor.png"></div>
+</div>
+<div class="ui-cap"><b>3 · Add monitor (US-06, US-07).</b> Only a name and a URL are required. Method, expected status and interval
+have working defaults, and the server clamps the interval to 30–3600 s with a readable error.</div>
+
+<div class="ui-row">
+  <div><div class="lab">Wireframe</div><img src="../design/ui/wireframes/04-monitor-detail.png"></div>
+  <div><div class="lab">Implemented</div><img src="../design/ui/screens/04-monitor-detail.png"></div>
+</div>
+<div class="ui-cap"><b>4 · Monitor detail (US-10, US-11, US-12).</b> Failed checks are drawn as red vertical markers on the chart,
+so a gap is explained rather than just missing. The check log shows what the server actually returned.</div>
+
+<div class="ui-row">
+  <div><div class="lab">Wireframe</div><img src="../design/ui/wireframes/05-incidents.png"></div>
+  <div><div class="lab">Implemented</div><img src="../design/ui/screens/05-incidents.png"></div>
+</div>
+<div class="ui-cap"><b>5 · Incident feed (US-13, US-14, US-15).</b> <i>Changed from the wireframe:</i> the feed moved from its own
+page to the bottom of the dashboard, which saves a navigation step. Open incidents are pinned to the top, and each resolved one
+carries its plain-English summary.</div>
+
+<div class="ui-row">
+  <div><div class="lab">Wireframe</div><img src="../design/ui/wireframes/06-public-status.png"></div>
+  <div><div class="lab">Implemented</div><img src="../design/ui/screens/06-public-status.png"></div>
+</div>
+<div class="ui-cap"><b>6 · Public status page (US-16, US-17).</b> No login. One banner derived from the worst service status, and
+only monitors the owner marked public. URLs and raw errors are never shown.</div>
+
+<h2>3.1 How the UI was made user-friendly</h2>
+<ul>
+  <li><b>Status is never shown by colour alone.</b> Every status pill carries its word (UP / DEGRADED / DOWN) next to the
+  coloured dot, so it still reads correctly for colour-blind users and in greyscale print.</li>
+  <li><b>Plain language instead of exception names.</b> Users see "Expected 200, got 503" and "No response within 8s", never
+  <code>httpx.ConnectTimeout</code>. Resolved incidents read as a sentence a non-engineer can forward to customers (US-21).</li>
+  <li><b>Few decisions, good defaults.</b> Adding a monitor takes two fields. Everything else has a sensible value that can be
+  changed later.</li>
+  <li><b>Empty and error states tell the user what to do next.</b> With no monitors, the dashboard explains how to add one. If
+  the API is unreachable, an inline alert appears and polling continues rather than leaving a blank page.</li>
+  <li><b>One visual language on all six screens.</b> The same tokens (colour, type, spacing) come from <code>globals.css</code>.
+  Monospace is used only for machine data (URLs, latencies, timestamps), so it is easy to tell what the user typed from what the system
+  measured. Keyboard users get a visible focus ring.</li>
+</ul>
+
+<!-- ============================================================ 4 -->
+<h1><span class="n">4</span>Design Decisions &amp; Why</h1>
+<div class="dec"><div class="h">1 · The probe worker runs in its own container.</div>
+Probing is slow, blocking I/O. Keeping it out of the API process means an outage cannot slow down the tool that reports it.
+<div class="t">Trade-off: two processes to run. Accepted, because Compose starts both with one command and they share one image.</div></div>
+<div class="dec"><div class="h">2 · Redis is a cache-aside layer with short TTLs, invalidated on write, and it fails soft.</div>
+The status page and dashboard are the read-heavy endpoints, and they spike during incidents. The TTL puts a ceiling on
+staleness, invalidation makes updates show up almost immediately, and swallowing Redis errors means the cache can never
+cause an outage of its own.
+<div class="t">Trade-off: a <code>SCAN</code> on each write. Cheap at this key count; it would be revisited if the number of keys grew large.</div></div>
+<div class="dec"><div class="h">3 · An incident opens after two consecutive failures, not one.</div>
+Single-check alerting fills the channel with false alarms until people mute it (the Arjun persona). The threshold is a setting
+in <code>config.py</code>, not a constant in the code.
+<div class="t">Trade-off: detection takes up to one extra interval. This is exactly the "within twice the interval" success metric from Review 1.</div></div>
+<div class="dec"><div class="h">4 · Ownership is enforced in one helper, and other users' data returns 404, not 403.</div>
+Account isolation (US-04) lives in <code>_owned()</code> and the <code>current_user</code> dependency rather than being repeated in
+every handler. A 404 does not reveal that the monitor exists.
+<div class="t">Trade-off: none worth noting. It is also less code.</div></div>
+<div class="dec"><div class="h">5 · One typed API client on the frontend, one settings object on the backend.</div>
+Every network call goes through <code>api&lt;T&gt;()</code> and every tunable goes through <code>Settings</code>, so changes to
+transport, auth or configuration each happen in one file.
+<div class="t">Trade-off: TypeScript types copy the Pydantic schemas by hand. Generating them from the OpenAPI spec is a planned improvement.</div></div>
+
+<!-- ============================================================ 5 -->
+<h1><span class="n">5</span>Maintainability and Future Changes</h1>
+<p>A design shows its worth when a change arrives. Each planned change below lands in one place, and the right-hand column
+lists what stays untouched:</p>
+<table>
+  <tr><th style="width:28%">Future change</th><th style="width:40%">Where it lands</th><th>What does not change</th></tr>
+  <tr><td>Email and Slack alerts (US-19, US-20)</td><td>New <code>alerts.py</code>, called from the two transition points in
+  <code>apply_result()</code></td><td>Routers, frontend, schema</td></tr>
+  <tr><td>TCP, DNS or keyword checks</td><td>A <code>kind</code> column plus one probe strategy per kind, chosen inside
+  <code>probe_once()</code></td><td>The state machine, which only sees a <code>Check</code></td></tr>
+  <tr><td>Check retention and downsampling</td><td>A periodic job in the worker loop</td><td><code>rollup()</code> and every reader of it</td></tr>
+  <tr><td>Multi-region probing</td><td>Run N worker containers, each with a region label</td><td>API and frontend</td></tr>
+  <tr><td>Token in an httpOnly cookie</td><td><code>lib/api.ts</code> and <code>security.py</code></td><td>All four pages</td></tr>
+</table>
+
+<h2>5.1 A defect this review caught, and why the fix was one file</h2>
+<p>Capturing the screens for this document exposed a bug. The dashboard counted open incidents from the incident feed, but
+the feed is capped at the newest 100 rows. An incident that stayed open long enough fell off the list, and the "Open incidents"
+tile read <b>0</b> while a monitor was down. The API already had an <code>open_only</code> filter, so the fix touched only
+the page that consumed it:</p>
+<pre><code class="language-typescript">// Open incidents are fetched on their own: the feed is capped at the
+// newest 100, so an old incident that is still open can fall off it.
+const [m, i, open] = await Promise.all([
+  api&lt;Monitor[]&gt;("/api/monitors"),
+  api&lt;Incident[]&gt;("/api/incidents"),
+  api&lt;Incident[]&gt;("/api/incidents?open_only=true"),
+]);
+setIncidents([...open, ...i.filter((x) =&gt; x.resolved_at)]);</code></pre>
+<div class="src">frontend/app/page.tsx, lines 48–56 (condensed)</div>
+
+<h2>5.2 Known design debt, stated plainly</h2>
+<ul>
+  <li><b>The dashboard check strip is illustrative.</b> It is currently drawn from the monitor's status, not from real check
+  history. The next step is to feed it the last 48 checks from the existing series endpoint.</li>
+  <li><b>No migration tool yet.</b> Tables are created with <code>create_all()</code>. Alembic has to be adopted before the
+  first schema change after release.</li>
+  <li><b>Thin test suite.</b> Only hashing and slug generation are tested today. Because <code>probe_once()</code> and
+  <code>apply_result()</code> were kept free of I/O coupling, the state machine in Figure 4 can be tested table-style without a
+  network.</li>
+</ul>
+
+<!-- ============================================================ 6 -->
+<h1><span class="n">6</span>Repository Updates</h1>
+<div class="two">
+<pre><code class="language-plaintext">docs/design/
+├── README.md                       index of this folder
+├── diagrams/
+│   ├── 01-architecture.drawio  + .png
+│   ├── 02-module-layers.drawio + .png
+│   ├── 03-data-model.drawio    + .png
+│   └── 04-monitor-state-machine.drawio + .png
+├── ui/
+│   ├── wireframes/   6 × .svg (Figma-importable) + .png
+│   └── screens/      6 × .png captured from the running app
+└── Vigil_Software_Design_Document.pdf</code></pre>
+<div>
+<p style="margin-top:4pt">• <b>Editable sources:</b> every diagram is a <code>.drawio</code> file that opens at
+<a href="https://app.diagrams.net">app.diagrams.net</a>. The four new ones are generated by
+<code>scripts/make_design_diagrams.py</code>.</p>
+<p>• <b>PNG exports:</b> <code>scripts/export_diagrams.py</code> renders each <code>.drawio</code> with the official
+diagrams.net viewer, so every PNG matches its source exactly.</p>
+<p>• <b>README.md:</b> new section <i>"Software Design"</i> embeds the diagrams and summarises the main design choices.</p>
+<p>• <b>Link:</b> <a href="https://github.com/vatsal-agra/vigil/tree/main/docs/design">github.com/vatsal-agra/vigil/tree/main/docs/design</a></p>
+</div>
+</div>
+
+<script>hljs.highlightAll();</script>
+</body>
+</html>
