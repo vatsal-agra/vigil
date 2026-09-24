@@ -11,7 +11,7 @@
 ![Redis 7](https://img.shields.io/badge/redis-7-DC382D)
 ![Docker Compose](https://img.shields.io/badge/docker-compose-2496ED)
 
-[Vision](#1-vision-document) · [Architecture](#3-architecture) · [GitHub setup](#5-github-setup--one-command) · [Quick start](#6-quick-start--local-development) · [Backlog](docs/user-stories.md) · [Wireframes](docs/wireframes)
+[Vision](#1-vision-document) · [Architecture](#3-architecture) · [Software Design](#software-design) · [GitHub setup](#5-github-setup--one-command) · [Quick start](#6-quick-start--local-development) · [Backlog](docs/user-stories.md) · [Wireframes](docs/wireframes)
 
 </div>
 
@@ -225,6 +225,35 @@ The full diagram lives at [`infra/architecture.drawio`](infra/architecture.drawi
 3. The router checks Redis for `monitors:list:<user_id>`. On a hit it returns immediately.
 4. On a miss it queries Postgres, computes the 24-hour rollup per monitor, writes the result to Redis with a 15-second TTL, and returns.
 5. Meanwhile the worker writes new checks and deletes those keys, so the next read is fresh.
+
+---
+
+# Software Design
+
+Vigil is a **layered monolith deployed as cooperating containers**. The frontend talks to the backend only through one typed client ([`lib/api.ts`](frontend/lib/api.ts)). Thin FastAPI routers delegate to shared domain modules, and the probe worker is a separate process that reuses those same modules, so an outage can never slow down the dashboard reporting it. The API and worker never call each other: they meet only at the database and a cache-key convention (Redis is cache-aside, invalidated on every write, and fails soft). That keeps coupling low enough that alerting, new check types or multi-region probing each land in one module.
+
+Full write-up with code snippets: [**Software Design Document (PDF)**](docs/design/Vigil_Software_Design_Document.pdf) · all sources in [`docs/design/`](docs/design)
+
+| Diagram | Editable source | What it shows |
+|---|---|---|
+| System architecture | [`01-architecture.drawio`](docs/design/diagrams/01-architecture.drawio) | Client → edge → frontend → API → cache / database, plus the worker |
+| Module and layer view | [`02-module-layers.drawio`](docs/design/diagrams/02-module-layers.drawio) | Every file, its layer, and its downward-only dependencies |
+| Data model | [`03-data-model.drawio`](docs/design/diagrams/03-data-model.drawio) | Four tables and their relationships |
+| Monitor state machine | [`04-monitor-state-machine.drawio`](docs/design/diagrams/04-monitor-state-machine.drawio) | Status transitions and the incident lifecycle in `probe.py` |
+
+![Module and layer view](docs/design/diagrams/02-module-layers.png)
+
+<details>
+<summary>Data model and state machine</summary>
+
+![Data model](docs/design/diagrams/03-data-model.png)
+![Monitor state machine](docs/design/diagrams/04-monitor-state-machine.png)
+
+</details>
+
+**UI:** the six Review 1 wireframes (SVG; drag them into Figma to get editable frames) sit next to screenshots of the implemented screens in [`docs/design/ui/`](docs/design/ui).
+
+Regenerate the diagrams with `python scripts/make_design_diagrams.py && python scripts/export_diagrams.py`, and the PDF with `python docs/build/build_sdd.py`.
 
 ---
 
@@ -516,6 +545,9 @@ docker compose pull && docker compose up -d
 | Dockerfiles | [`backend/Dockerfile`](backend/Dockerfile), [`frontend/Dockerfile`](frontend/Dockerfile) |
 | Quick Start — Local Development | [§6](#6-quick-start--local-development) |
 | Local development tools | [§7](#7-local-development-tools) |
+| **Review 2** — Software Design Document | [`docs/design/Vigil_Software_Design_Document.pdf`](docs/design/Vigil_Software_Design_Document.pdf) |
+| **Review 2** — `/docs/design/` with draw.io sources, PNG exports, UI screens | [`docs/design/`](docs/design) |
+| **Review 2** — README "Software Design" section | [Software Design](#software-design) above |
 
 ---
 

@@ -45,12 +45,15 @@ export default function Dashboard() {
 
   const load = useCallback(async () => {
     try {
-      const [m, i] = await Promise.all([
+      // Open incidents are fetched on their own: the feed is capped at the
+      // newest 100, so an old incident that is still open can fall off it.
+      const [m, i, open] = await Promise.all([
         api<Monitor[]>("/api/monitors"),
         api<Incident[]>("/api/incidents"),
+        api<Incident[]>("/api/incidents?open_only=true"),
       ]);
       setMonitors(m);
-      setIncidents(i);
+      setIncidents([...open, ...i.filter((x) => x.resolved_at)]);
       setError("");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not reach the API.");
