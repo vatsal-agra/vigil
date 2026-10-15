@@ -254,11 +254,11 @@ def test_the_recovery_summary_reports_the_outage_length_in_minutes(db, make_moni
     apply_result(db, m, failed(m.id))
     apply_result(db, m, failed(m.id))
     incident = open_incident(db, m.id)
-    incident.started_at = ago(minutes=30)
+    incident.started_at = ago(hours=10)          # long enough that /60 vs /61 shows (600 vs 590 min)
     db.commit()
     apply_result(db, m, passed(m.id))
     db.refresh(incident)
-    assert incident.summary.startswith("Checkout API recovered after 30 min.")
+    assert incident.summary.startswith("Checkout API recovered after 600 min.")
 
 
 def test_a_failure_without_an_error_message_still_names_a_cause(db, make_monitor):
