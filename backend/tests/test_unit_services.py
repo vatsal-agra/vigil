@@ -80,3 +80,33 @@ def test_unique_handle_derives_from_the_email_and_avoids_collisions(db, owner):
     db.add(User(email="o2@x.org", handle="owner-2", password_hash="x"))
     db.commit()
     assert unique_handle(db, "owner@third.org") == "owner-3"
+
+
+# ------------------------------------------------------------------ mutation-driven
+
+def test_rollup_defaults_to_exactly_24_hours(db, make_monitor):
+    m = make_monitor()
+    add_checks(db, m.id, (True, 100.0, ago(hours=1)), (False, None, ago(hours=24, minutes=30)))
+    assert rollup(db, m.id)["checks_counted"] == 1
+
+
+def test_rollup_includes_a_check_exactly_at_the_window_edge(db, make_monitor, monkeypatch):
+    import app.services as services
+    from datetime import datetime, timedelta, timezone
+    now = datetime(2026, 10, 1, 12, 0, 0, tzinfo=timezone.utc)
+
+    class Frozen(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return now
+
+    monkeypatch.setattr(services, "datetime", Frozen)
+    m = make_monitor()
+    add_checks(db, m.id, (True, 100.0, now - timedelta(hours=24)))
+    assert rollup(db, m.id)["checks_counted"] == 1
+
+
+def test_rollup_rounds_latency_to_one_decimal(db, make_monitor):
+    m = make_monitor()
+    add_checks(db, m.id, (True, 123.456, ago(minutes=1)))
+    assert rollup(db, m.id)["avg_latency_ms"] == 123.5

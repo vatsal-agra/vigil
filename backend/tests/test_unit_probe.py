@@ -198,3 +198,100 @@ def test_run_cycle_probes_only_due_monitors_and_reports_the_count(db, make_monit
 
 def test_run_cycle_with_nothing_due_does_no_work(db, fake_web):
     assert run_cycle(db, fake_web({})) == 0
+
+
+# ------------------------------------------------------------------ mutation-driven
+# Added after the first mutmut run: each test below kills mutants that survived it
+# (exact latency arithmetic, rounding, boundaries, client ownership, log output).
+
+class FakeClock:
+    def __init__(self, *readings):
+        self._readings = iter(readings)
+
+    def perf_counter(self):
+        return next(self._readings)
+
+
+def frozen_at(moment):
+    class Frozen(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return moment
+    return Frozen
+
+
+def test_latency_is_measured_in_milliseconds_to_one_decimal(fake_web, monkeypatch):
+    import app.probe as probe
+    web = fake_web({URL: 200})
+    monkeypatch.setattr(probe, "time", FakeClock(10.0, 10.123456))
+    assert probe_once(web, monitor()).latency_ms == 123.5
+
+
+def test_a_timeout_records_its_duration_in_milliseconds(fake_web, monkeypatch):
+    import app.probe as probe
+    web = fake_web({URL: httpx.ReadTimeout})
+    monkeypatch.setattr(probe, "time", FakeClock(10.0, 18.123456))
+    assert probe_once(web, monitor()).latency_ms == 8123.5
+
+
+def test_a_monitor_is_due_at_exactly_its_interval(db, make_monitor, monkeypatch):
+    import app.probe as probe
+    from datetime import timezone, timedelta
+    now = datetime(2026, 10, 1, 12, 0, 0, tzinfo=timezone.utc)
+    monkeypatch.setattr(probe, "datetime", frozen_at(now))
+    m = make_monitor(interval_seconds=60, last_checked_at=now - timedelta(seconds=60))
+    assert [x.id for x in due_monitors(db)] == [m.id]
+
+
+def test_every_never_checked_monitor_is_due_not_just_the_first(db, make_monitor):
+    a = make_monitor(name="A", url="https://a.test/")
+    b = make_monitor(name="B", url="https://b.test/")
+    assert sorted(x.id for x in due_monitors(db)) == [a.id, b.id]
+
+
+def test_the_recovery_summary_reports_the_outage_length_in_minutes(db, make_monitor):
+    m = make_monitor(name="Checkout API")
+    apply_result(db, m, failed(m.id))
+    apply_result(db, m, failed(m.id))
+    incident = open_incident(db, m.id)
+    incident.started_at = ago(minutes=30)
+    db.commit()
+    apply_result(db, m, passed(m.id))
+    db.refresh(incident)
+    assert incident.summary.startswith("Checkout API recovered after 30 min.")
+
+
+def test_a_failure_without_an_error_message_still_names_a_cause(db, make_monitor):
+    m = make_monitor()
+    from app.models import Check
+    for _ in range(2):
+        apply_result(db, m, Check(monitor_id=m.id, ok=False, status_code=None, latency_ms=None, error=None))
+    assert open_incident(db, m.id).cause == "check failed"
+
+
+def test_run_cycle_closes_the_client_it_creates_and_follows_redirects(db, make_monitor, monkeypatch):
+    import app.probe as probe
+    real_client = httpx.Client
+    made = []
+
+    def factory(**kwargs):
+        c = real_client(transport=httpx.MockTransport(lambda r: httpx.Response(200)), **kwargs)
+        made.append((c, kwargs))
+        return c
+
+    make_monitor()
+    monkeypatch.setattr(probe.httpx, "Client", factory)
+    probe.run_cycle(db)
+    [(client, kwargs)] = made
+    assert kwargs == {"follow_redirects": True}
+    assert client.is_closed
+
+
+def test_run_cycle_logs_each_check(db, make_monitor, fake_web, caplog):
+    import logging
+    make_monitor(name="Up", url="https://up.test/")
+    make_monitor(name="Down", url="https://down.test/")
+    caplog.set_level(logging.INFO, logger="vigil.probe")
+    run_cycle(db, fake_web({"https://up.test/": 200, "https://down.test/": 500}))
+    lines = sorted(r.getMessage().split(" (")[0] for r in caplog.records if r.name == "vigil.probe")
+    assert lines == ["checked Down -> fail", "checked Up -> ok"]
