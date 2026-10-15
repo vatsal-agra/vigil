@@ -100,11 +100,14 @@ def apply_result(db: Session, monitor: Monitor, check: Check) -> None:
     cache.invalidate("status:public:*")
 
 
-def run_cycle(db: Session) -> int:
+def run_cycle(db: Session, client: httpx.Client | None = None) -> int:
+    """Probe every due monitor once. Pass a client to control the network (tests)."""
     monitors = due_monitors(db)
     if not monitors:
         return 0
-    with httpx.Client(follow_redirects=True) as client:
+    owned = client is None
+    client = client or httpx.Client(follow_redirects=True)
+    try:
         for monitor in monitors:
             result = probe_once(client, monitor)
             apply_result(db, monitor, result)
@@ -114,4 +117,7 @@ def run_cycle(db: Session) -> int:
                 "ok" if result.ok else "fail",
                 result.latency_ms,
             )
+    finally:
+        if owned:
+            client.close()
     return len(monitors)
