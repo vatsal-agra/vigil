@@ -79,8 +79,20 @@ export default function MonitorDetail() {
   }, [load, router]);
 
   async function remove() {
+    // US-12 AC3: deleting drops the check history and incidents too, so confirm first.
+    const name = monitor?.name ?? "this monitor";
+    if (!window.confirm(`Stop watching ${name}? Its check history and incidents will be deleted.`)) return;
     await api(`/api/monitors/${params.id}`, { method: "DELETE" });
     router.push("/");
+  }
+
+  async function togglePaused() {
+    if (!monitor) return;
+    await api(`/api/monitors/${params.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ is_active: !monitor.is_active }),
+    });
+    load();
   }
 
   async function togglePublic() {
@@ -112,6 +124,7 @@ export default function MonitorDetail() {
       <h1>{monitor.name}</h1>
       <p className="eyebrow">
         {monitor.method} {monitor.url} · every {monitor.interval_seconds}s
+        {!monitor.is_active && " · paused"}
       </p>
 
       <div className="rail">
@@ -160,6 +173,9 @@ export default function MonitorDetail() {
       </div>
 
       <div className="stack-32" style={{ display: "flex", gap: 10 }}>
+        <button className="btn" onClick={togglePaused}>
+          {monitor.is_active ? "Pause checks" : "Resume checks"}
+        </button>
         <button className="btn" onClick={togglePublic}>
           {monitor.is_public ? "Remove from status page" : "Show on status page"}
         </button>
