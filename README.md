@@ -492,11 +492,33 @@ in the final image.
 
 # 8. Testing
 
+The backend suites run against a **real PostgreSQL and Redis**: an isolated `<db>_test` database (created on first use) and Redis db 15, so they never touch the demo data. Only the monitored targets are simulated, with `httpx.MockTransport`.
+
+| Suite | Command | What it covers |
+|---|---|---|
+| Unit | `pytest -m unit` | Probe engine, shared queries, hashing and tokens: exact values and boundaries |
+| Integration | `pytest -m integration` | Every API route through the full stack, plus an end-to-end outage lifecycle across API, worker, database and cache |
+| Regression | `pytest -m regression` | One test per fixed defect or contract (R1–R7) |
+| Mutation | `mutmut run && mutmut results` | mutmut over `probe.py` and `services.py`; see `.github/workflows/mutation.yml` |
+| End-to-end | `python -m pytest e2e -v` | Playwright drives Chromium through the core journeys against `docker compose up` |
+
 ```bash
-docker compose exec api pytest -q          # inside the running stack
-cd backend && pytest -q                    # or on the host, with deps installed
-cd frontend && npm run build               # type-check + production build
+docker compose exec api pip install --user -r requirements-dev.txt   # once: pytest-cov, mutmut
+docker compose exec api python -m pytest -v --cov=app                 # all backend suites + coverage
+python -m pytest e2e -v                                               # host: pip install playwright pytest
+cd frontend && npm run build                                          # type-check + production build
 ```
+
+Run mutation testing in a throwaway container, because mutmut edits source files in place and the dev container bind-mounts them:
+
+```bash
+docker compose build api
+docker run --rm --network vigil_default \
+  -e DATABASE_URL=postgresql+psycopg://vigil:vigil@db:5432/vigil -e REDIS_URL=redis://cache:6379/0 \
+  vigil-api sh -c "pip install -q --user -r requirements-dev.txt && python -m mutmut run; python -m mutmut results"
+```
+
+CI runs the unit, integration and regression suites as separate steps on every pull request, against PostgreSQL and Redis service containers, with a combined coverage report.
 
 ---
 
@@ -548,6 +570,10 @@ docker compose pull && docker compose up -d
 | **Review 2** — Software Design Document | [`docs/design/Vigil_Software_Design_Document.pdf`](docs/design/Vigil_Software_Design_Document.pdf) |
 | **Review 2** — `/docs/design/` with draw.io sources, PNG exports, UI screens | [`docs/design/`](docs/design) |
 | **Review 2** — README "Software Design" section | [Software Design](#software-design) above |
+| **Review 3** — Project report (testing, version management, SRS, DFD, ERD, UML, code) | [`docs/report/Vigil_Project_Report.pdf`](docs/report/Vigil_Project_Report.pdf) |
+| **Review 3** — Integration, regression, mutation and e2e tests | [§8 Testing](#8-testing), [`backend/tests/`](backend/tests), [`e2e/`](e2e) |
+| **Review 3** — DFD and UML diagrams (draw.io) | [`docs/design/diagrams/`](docs/design/diagrams) (05–10) |
+| **Review 3** — Releases | [v0.1.0, v0.2.0, v0.3.0-rc.1](https://github.com/vatsal-agra/vigil/releases) |
 
 ---
 
