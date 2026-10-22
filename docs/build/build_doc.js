@@ -179,8 +179,9 @@ const contents = [
         new TextRun({ text: n + ".", size: 21, bold: true, color: A, font: "Calibri" }),
         new TextRun({ text: "   " + t + "\t" + pg, size: 21, color: INK, font: "Calibri" }),
       ] })),
-  note("Deliverables 1 to 4 are reproduced in full below. Deliverable 5 requires screenshots of the "
-     + "live environment; each is marked with a placeholder frame stating exactly what to capture."),
+  note("Deliverables 1 to 4 are reproduced in full below. Deliverable 5 includes screenshots "
+     + "captured from the live environment: the running Docker stack, the application in the "
+     + "browser on localhost, and the GitHub repository, issues and project board."),
   brk(),
 ];
 
@@ -708,9 +709,9 @@ const proofShots = [
 const proof = [
   h1("Proof That Everything Works", "6."),
   p("The assignment requires screenshots of a successful Docker build, the application running in a browser on localhost, and the GitHub repository page showing branches and README. Screenshots 1 and 2 appear in Sections 1 and 5 respectively; screenshots 3 and 4 in Section 2. The remainder follow."),
-  note("Each frame below is a placeholder stating exactly what to capture and the command that "
-     + "produces it. Replace each image with the corresponding screenshot before submitting. "
-     + "docs/screenshots/README.md in the repository contains the same checklist."),
+  note("Each screenshot below was captured from the live environment: the terminal running the "
+     + "stack, and the application in the browser on localhost. docs/screenshots/README.md in "
+     + "the repository documents how each capture was produced."),
 ];
 proofShots.forEach(([path, cap]) => {
   proof.push(img(path, 620, 354));
