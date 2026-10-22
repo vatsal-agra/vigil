@@ -21,15 +21,15 @@ docker info *> $null
 if ($LASTEXITCODE -eq 0) { Pass "Docker engine is running" }
 else { Fail "Docker engine is not running" "Start Docker Desktop and wait for 'Engine running', then re-run."; exit 1 }
 
-# 2. Containers
-$expected = "vigil-api-1", "vigil-cache-1", "vigil-db-1", "vigil-web-1", "vigil-worker-1"
-$running = docker compose ps --format "{{.Name}}|{{.State}}|{{.Health}}" 2>$null
+# 2. Containers (by Compose service name, so any checkout folder name works)
+$expected = "api", "cache", "db", "web", "worker"
+$running = docker compose ps --format "{{.Service}}|{{.State}}|{{.Health}}" 2>$null
 foreach ($name in $expected) {
     $row = $running | Where-Object { $_ -like "$name|*" }
     if (-not $row) { Fail "$name is not running" "Run: docker compose up -d"; continue }
     $state, $health = ($row -split "\|")[1], ($row -split "\|")[2]
     if ($state -ne "running") { Fail "$name is $state" "Run: docker compose up -d" }
-    elseif ($health -and $health -ne "healthy") { Fail "$name is $health" "Wait 30 s and re-run; if it persists: docker compose logs $($name -replace 'vigil-|-1','')" }
+    elseif ($health -and $health -ne "healthy") { Fail "$name is $health" "Wait 30 s and re-run; if it persists: docker compose logs $name" }
     else { Pass ("$name running" + $(if ($health) { " ($health)" } else { "" })) }
 }
 
