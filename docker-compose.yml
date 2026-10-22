@@ -60,7 +60,7 @@ services:
       - ./backend:/app
     depends_on:
       api:
-        condition: service_started
+        condition: service_healthy    # api creates the tables and seeds on start-up
       db:
         condition: service_healthy
       cache:
