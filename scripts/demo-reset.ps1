@@ -21,7 +21,8 @@ Write-Host "Waiting for the API to report healthy..." -ForegroundColor Cyan
 $deadline = (Get-Date).AddMinutes(4)
 do {
     Start-Sleep -Seconds 3
-    $health = docker inspect -f "{{.State.Health.Status}}" vigil-api-1 2>$null
+    $id = docker compose ps -q api 2>$null
+    $health = if ($id) { docker inspect -f "{{.State.Health.Status}}" $id 2>$null } else { "" }
 } until ($health -eq "healthy" -or (Get-Date) -gt $deadline)
 
 Write-Host "Warming up the web app (first page compile)..." -ForegroundColor Cyan
