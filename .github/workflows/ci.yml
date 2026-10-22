@@ -10,21 +10,46 @@ jobs:
   backend:
     name: Backend — tests
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: vigil
+          POSTGRES_PASSWORD: vigil
+          POSTGRES_DB: vigil
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U vigil" --health-interval 5s
+          --health-timeout 3s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 5s
+          --health-timeout 3s --health-retries 10
+    env:
+      DATABASE_URL: postgresql+psycopg://vigil:vigil@localhost:5432/vigil
+      REDIS_URL: redis://localhost:6379/0
+    defaults:
+      run:
+        working-directory: backend
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
-          cache-dependency-path: backend/requirements.txt
+          cache-dependency-path: backend/requirements*.txt
       - name: Install dependencies
-        working-directory: backend
-        run: pip install -r requirements.txt
-      - name: Run tests
-        working-directory: backend
-        env:
-          DATABASE_URL: sqlite:///./ci.db
-        run: python -m pytest -q
+        run: pip install -r requirements-dev.txt
+      - name: Unit tests
+        run: python -m pytest -m unit -v --cov=app
+      - name: Integration tests
+        run: python -m pytest -m integration -v --cov=app --cov-append
+      - name: Regression tests
+        run: python -m pytest -m regression -v --cov=app --cov-append
+      - name: Coverage report
+        run: python -m coverage report --show-missing
 
   frontend:
     name: Frontend — build
